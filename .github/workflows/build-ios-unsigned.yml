@@ -11,10 +11,19 @@ jobs:
       - name: Checkout OpenFlux v0.2.0
         uses: actions/checkout@v4
         with:
-          ref: v0.2.0
+          repository: p1neappleXpress/OpenFlux
+          ref: 2ec01a5
+          fetch-depth: 1
+
+      - name: Show Xcode version
+        run: |
+          xcodebuild -version
+          xcode-select -p
 
       - name: Install xcodegen
-        run: brew install xcodegen
+        run: |
+          brew install xcodegen
+          xcodegen --version
 
       - name: Build iOS
         run: |
@@ -22,11 +31,15 @@ jobs:
           ./build_ios_app.sh
 
       - name: Find IPA
+        if: always()
         run: |
-          find . -name "*.ipa" -print
+          echo "Searching for IPA files..."
+          find . -type f -name "*.ipa" -print || true
 
       - name: Upload IPA
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: OpenFlux-v0.2.0-IPA
           path: "**/*.ipa"
+          if-no-files-found: error
