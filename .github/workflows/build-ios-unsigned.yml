@@ -30,14 +30,28 @@ jobs:
           chmod +x build_ios.sh
           ./build_ios.sh
 
-      - name: Sync library into iOS app
+      - name: Inspect generated iOS library
+        working-directory: OpenFlux
+        run: |
+          echo "=== output/ios ==="
+          ls -lah output/ios
+
+      - name: Sync library and header
         working-directory: OpenFlux
         run: |
           mkdir -p ios-app/Lib
 
           cp output/ios/liboflux.a ios-app/Lib/liboflux.a
 
-          echo "=== Lib contents ==="
+          if [ -f output/ios/liboflux.h ]; then
+            cp output/ios/liboflux.h ios-app/Lib/liboflux.h
+          else
+            echo "ERROR: liboflux.h was not generated"
+            find output -name "liboflux.h" -print
+            exit 1
+          fi
+
+          echo "=== ios-app/Lib ==="
           ls -lah ios-app/Lib
 
       - name: Generate Xcode project
@@ -66,18 +80,25 @@ jobs:
         working-directory: OpenFlux/ios-app
         run: |
           echo "=== Build products ==="
-          find build/Build/Products -maxdepth 2 -type d -name "*.app" -print || true
+          find build/Build/Products -maxdepth 2 \
+            -type d \
+            -name "*.app" \
+            -print || true
 
       - name: Package IPA
         working-directory: OpenFlux/ios-app
         run: |
           mkdir -p ../../Payload
 
+          rm -rf ../../Payload/OpenFlux.app
+
           cp -R \
             build/Build/Products/Release-iphoneos/OpenFlux.app \
             ../../Payload/OpenFlux.app
 
           cd ../..
+
+          rm -f OpenFlux-v0.2.0-unsigned.ipa
 
           zip -r OpenFlux-v0.2.0-unsigned.ipa Payload
 
