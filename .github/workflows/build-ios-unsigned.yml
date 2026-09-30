@@ -1,0 +1,32 @@
+name: Build OpenFlux unsigned IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout OpenFlux v0.2.0
+        uses: actions/checkout@v4
+        with:
+          ref: v0.2.0
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Build iOS
+        run: |
+          chmod +x build_ios_app.sh
+          ./build_ios_app.sh
+
+      - name: Find IPA
+        run: |
+          find . -name "*.ipa" -print
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenFlux-v0.2.0-IPA
+          path: "**/*.ipa"
