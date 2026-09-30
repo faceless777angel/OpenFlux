@@ -8,12 +8,17 @@ jobs:
     runs-on: macos-26
 
     steps:
-      - name: Checkout OpenFlux v0.2.0
-        uses: actions/checkout@v4
-        with:
-          repository: p1neappleXpress/OpenFlux
-          ref: 2ec01a5
-          fetch-depth: 1
+      - name: Clone OpenFlux v0.2.0
+        run: |
+          git clone --depth 1 --branch v0.2.0 \
+            https://github.com/p1neappleXpress/OpenFlux.git \
+            OpenFlux
+
+      - name: Show version
+        working-directory: OpenFlux
+        run: |
+          git log -1 --oneline
+          git describe --tags --always
 
       - name: Show Xcode version
         run: |
@@ -25,7 +30,8 @@ jobs:
           brew install xcodegen
           xcodegen --version
 
-      - name: Build iOS
+      - name: Build iOS app
+        working-directory: OpenFlux
         run: |
           chmod +x build_ios_app.sh
           ./build_ios_app.sh
@@ -33,13 +39,16 @@ jobs:
       - name: Find IPA
         if: always()
         run: |
-          echo "Searching for IPA files..."
-          find . -type f -name "*.ipa" -print || true
+          echo "=== IPA files ==="
+          find OpenFlux -type f -name "*.ipa" -print || true
+
+          echo "=== APP files ==="
+          find OpenFlux -type d -name "*.app" -print || true
 
       - name: Upload IPA
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: OpenFlux-v0.2.0-IPA
-          path: "**/*.ipa"
+          path: "OpenFlux/**/*.ipa"
           if-no-files-found: error
