@@ -24,30 +24,57 @@ jobs:
           brew install xcodegen
           xcodegen --version
 
-      - name: Show Xcode version
-        run: |
-          xcodebuild -version
-          xcode-select -p
-
-      - name: Build iOS app
+      - name: Build unsigned iOS app
         working-directory: OpenFlux
         run: |
           chmod +x build_ios_app.sh
-          ./build_ios_app.sh
+          chmod +x build_ios.sh
 
-      - name: Find IPA
-        if: always()
+          ./build_ios.sh
+
+          cd ios-app
+          xcodegen generate
+
+          xcodebuild \
+            -project OpenFlux.xcodeproj \
+            -scheme OpenFlux \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination generic/platform=iOS \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            clean build
+
+      - name: Package IPA
+        working-directory: OpenFlux
         run: |
-          echo "=== IPA files ==="
-          find OpenFlux -type f -name "*.ipa" -print || true
+          mkdir -p Payload
 
-          echo "=== APP files ==="
-          find OpenFlux -type d -name "*.app" -print || true
+          cp -R \
+            ios-app/build/Build/Products/Release-iphoneos/OpenFlux.app \
+            Payload/OpenFlux.app
+
+          zip -r OpenFlux-v0.2.0-unsigned.ipa Payload
+
+      - name: Verify IPA
+        working-directory: OpenFlux
+        run: |
+          echo "=== IPA ==="
+          ls -lh OpenFlux-v0.2.0-unsigned.ipa
+
+          echo "=== App ==="
+          find ios-app/build/Build/Products/Release-iphoneos \
+            -maxdepth 1 \
+            -type d \
+            -name "*.app" \
+            -print
 
       - name: Upload IPA
-        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: OpenFlux-v0.2.0-IPA
-          path: "OpenFlux/**/*.ipa"
+          name: OpenFlux-v0.2.0-unsigned
+          path: OpenFlux/OpenFlux-v0.2.0-unsigned.ipa
           if-no-files-found: error
