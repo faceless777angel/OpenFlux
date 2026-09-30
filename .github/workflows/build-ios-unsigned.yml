@@ -14,21 +14,20 @@ jobs:
             https://github.com/p1neappleXpress/OpenFlux.git \
             OpenFlux
 
-      - name: Show version
-        working-directory: OpenFlux
+      - name: Install Go
         run: |
-          git log -1 --oneline
-          git describe --tags --always
-
-      - name: Show Xcode version
-        run: |
-          xcodebuild -version
-          xcode-select -p
+          brew install go
+          go version
 
       - name: Install xcodegen
         run: |
           brew install xcodegen
           xcodegen --version
+
+      - name: Show Xcode version
+        run: |
+          xcodebuild -version
+          xcode-select -p
 
       - name: Build iOS app
         working-directory: OpenFlux
