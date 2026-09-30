@@ -1,0 +1,60 @@
+name: Build OpenFlux unsigned IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout OpenFlux v0.2.0
+        uses: actions/checkout@v4
+        with:
+          ref: v0.2.0
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Build iOS core
+        run: |
+          chmod +x build_ios.sh
+          ./build_ios.sh
+
+      - name: Generate Xcode project
+        working-directory: ios-app
+        run: xcodegen generate
+
+      - name: Build unsigned app
+        working-directory: ios-app
+        run: |
+          xcodebuild \
+            -project OpenFlux.xcodeproj \
+            -scheme OpenFlux \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Create IPA
+        run: |
+          mkdir -p Payload
+
+          cp -R \
+            ios-app/build/Build/Products/Release-iphoneos/OpenFlux.app \
+            Payload/
+
+          zip -r OpenFlux-v0.2.0-unsigned.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenFlux-v0.2.0-unsigned
+          path: OpenFlux-v0.2.0-unsigned.ipa
